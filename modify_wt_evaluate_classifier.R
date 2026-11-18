@@ -132,7 +132,7 @@ wt_evaluate_classifier_spp <- function(data, resolution = NULL, remove_species =
 }
 
 
-eval_sp <- wt_evaluate_classifier_spp(data, resolution = "task",
+eval_sp <- wt_evaluate_classifier_spp(data = list, resolution = "task",
                                       thresholds = c(0.1, 0.99))
 
 names(eval_sp)
@@ -150,4 +150,4 @@ plots <- map(spp_list, \(d)
                geom_line() + ylim(0,1) + 
                labs(title = d$species_common_name[1]) + theme_bw()) 
 
-plots$`Baird's Sparrow` ##yikes need more data :)
+plots$`Clay-colored Sparrow` ##yikes need more data :)
