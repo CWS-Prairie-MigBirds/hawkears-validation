@@ -33,7 +33,7 @@ library(tidyverse)
 #   WT_PASSWORD=********
 wt_auth()
 
-PROJECT_ID   <- 0000          # <-- WildTrax project ID
+PROJECT_ID   <- 3456          # <-- WildTrax project ID
 UNIT         <- "task_id"     # "task_id" or "recording_id"
 WT_RES       <- "task"        # matching wildrtrax resolution: "task" / "recording"
 THRESHOLDS   <- seq(0.01, 0.99, by = 0.01)
@@ -41,7 +41,7 @@ MIN_HUMAN_N  <- 10            # min # human-positive units to report a species
 TARGET_PREC  <- 0.90          # precision target for the alternate threshold
 FOCAL_SPP    <- NULL          # e.g. c("OVEN", "SWTH", "WTSP"); NULL = all
 
-# All outputs go here, regardless of working directory / RStudio project
+# All outputs go here
 OUT_DIR <- "C:/Users/megre/OneDrive/Desktop/Projects and Scripts/hawkears-validation/boreal"
 out <- function(...) file.path(OUT_DIR, ...)
 
@@ -64,12 +64,10 @@ theme_val <- theme_bw(base_size = 11) +
 # ---- 1. Download ------------------------------------------------------------
 
 raw_path <- out("data", paste0("wt_project_", PROJECT_ID, "_main_ai.rds"))
-
 if (!file.exists(raw_path)) {
-  data <- wt_download_report(project_id  = PROJECT_ID,
-                             sensor_id   = "ARU",
-                             reports     = c("main", "ai"),
-                             weather_cols = FALSE)
+  data <- wt_download_report(project_id = PROJECT_ID,
+                             sensor_id  = "ARU",
+                             reports    = c("main", "ai"))
   saveRDS(data, raw_path)
 } else {
   data <- readRDS(raw_path)
@@ -77,7 +75,6 @@ if (!file.exists(raw_path)) {
 
 # ---- 2. Wrangle & QC --------------------------------------------------------
 
-# Don't assume list order: identify the AI element by its 'confidence' column
 str(data, max.level = 1)
 is_ai <- map_lgl(data, ~ "confidence" %in% names(.x))
 stopifnot(sum(is_ai) == 1)
@@ -88,19 +85,33 @@ main <- data[[which(!is_ai)[1]]]
 glimpse(main)
 glimpse(ai)
 
-# Classifier label. Check 'version' (and 'organization') values and edit if
-# you want a cleaner label, e.g. "HawkEars v1.0.8".
-ai <- ai |> mutate(classifier = as.character(version))
-count(ai, classifier)
+str(unique(ai$version))
+
+CLASSIFIERS <- c("Hawkears v1.0.8")
+ai <- ai |>
+  filter(version %in% CLASSIFIERS) |>
+  mutate(classifier = as.character(version))
+
+ai |>
+  summarise(n_na    = sum(is.na(confidence)),
+            prop_na = mean(is.na(confidence)),
+            class   = class(confidence))
+
+ai |> filter(is.na(confidence)) |> head() |> glimpse()
+
+
 
 # Score floor: recall below the minimum stored score is not estimable
+ai <- ai |>
+  filter(version %in% CLASSIFIERS, !is.na(confidence)) |>
+  mutate(classifier = as.character(version))
+
 ai |>
   group_by(classifier) |>
   summarise(n_det = n(),
             min_score = min(confidence),
             max_score = max(confidence),
             n_spp = n_distinct(species_code))
-
 # Species allowed in the project (mirrors remove_species = TRUE)
 ai <- ai |> filter(is_species_allowed_in_project)
 
@@ -122,7 +133,23 @@ main |>
   count(species_code, species_common_name, sort = TRUE) |>
   print(n = 30)
 
-# Classifier: max score per unit x species x classifier, units humans processed
+# Classifier: max score per unit x species x classifier, units humans 
+
+
+names(ai)
+
+names(main)   # confirm task_id, recording_id, task_duration exist
+
+rec_task <- main |>
+  distinct(recording_id, task_id, task_duration)
+
+# recordings with >1 task?
+rec_task |> count(recording_id) |> filter(n > 1) |> nrow()
+
+ai <- ai |>
+  inner_join(rec_task, by = "recording_id", relationship = "many-to-many") |>
+  filter(is.na(task_duration) | detection_time < task_duration)
+
 ai_max <- ai |>
   filter(.data[[UNIT]] %in% units) |>
   group_by(classifier, unit = .data[[UNIT]], species_code) |>
@@ -138,6 +165,7 @@ paired <- truth |>
 if (!is.null(FOCAL_SPP)) paired <- filter(paired, species_code %in% FOCAL_SPP)
 
 saveRDS(paired, out("data", "paired_unit_species.rds"))
+
 
 # ---- 3. Official wildrtrax metrics -----------------------------------------
 
@@ -187,6 +215,7 @@ xcheck <- counts_all |>
   mutate(d_prec = precision_manual - precision_wt,
          d_rec  = recall_manual    - recall_wt)
 summary(select(xcheck, d_prec, d_rec))
+
 # If classifier labels don't match, inner_join is empty: align the labels.
 
 # ---- 5. Species-level summaries --------------------------------------------
@@ -355,3 +384,4 @@ write_csv(eval_wt,        out("tables", "wt_eval_pooled.csv"))
 write_csv(counts_all,     out("tables", "manual_counts_pooled.csv"))
 write_csv(eval_spp,       out("tables", "manual_metrics_by_species.csv"))
 write_csv(spp_thresholds, out("tables", "species_thresholds.csv"))
+
