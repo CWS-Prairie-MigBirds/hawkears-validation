@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HawkEars validation</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet">
+<style>
+/* VOICE: field-methods report — calm, exact, numbers first.
+   IDEA: a scientific plate: one large figure with leader labels, a narrow caption column.
+   PICTURE: the precision / recall / F-score curves with a draggable threshold.
+   COLOUR and TYPE: white plate, ink, prussian accent; series blue / red / gold (CVD-validated); Century Gothic, Questrial fallback.
+   LAYOUT: finding as title, key figures, the plate; species table; upload; reading guide. */
+:root{color-scheme:light dark;
+  --bg:light-dark(#ffffff,#0f1217);--ink:light-dark(#10131a,#e8eaee);--mute:light-dark(#5b6270,#9aa1ad);
+  --rule:light-dark(#d9dbe0,#2c313a);--grid:light-dark(#e1e0d9,#2c2c2a);--axis:light-dark(#c3c2b7,#383835);
+  --panel:light-dark(#f5f6f8,#161a21);--acc:light-dark(#0b4f8a,#7fb0e6);--warn:light-dark(#a3101b,#f08a8f);
+  --s1:light-dark(#2a78d6,#3987e5);--s2:light-dark(#e34948,#e34948);--s3:light-dark(#eda100,#d69200);
+  --font:"Century Gothic",CenturyGothic,AppleGothic,Questrial,"URW Gothic","Avant Garde",sans-serif;
+  --floor:light-dark(#eef0f3,#1b2028)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--font);overflow-x:clip}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px);max-width:1240px;margin:0 auto}
+h1{font-size:clamp(28px,4.2vw,44px);line-height:1.08;font-weight:700;margin:0 0 10px;text-wrap:balance}
+h2{font-size:24px;line-height:1.2;margin:0 0 8px}
+h3{font-size:18px;margin:22px 0 6px}
+p{margin:0 0 12px;max-width:70ch}
+.lede{color:var(--mute);font-size:16px}
+nav{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--ink);margin-bottom:24px}
+nav a{padding:10px 14px;color:var(--ink);text-decoration:none;border-bottom:3px solid transparent;margin-bottom:-2px;min-height:44px}
+nav a[aria-current=page]{border-bottom-color:var(--acc);color:var(--acc);font-weight:600}
+nav a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--mute);margin-bottom:6px}
+.src{display:inline-flex;gap:8px;align-items:center}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin:18px 0 22px}
+.figs div{padding:12px 14px 12px 0}
+.figs b{display:block;font-size:clamp(26px,3.4vw,36px);line-height:1.1;font-variant-numeric:tabular-nums}
+.figs span{font-size:14px;color:var(--mute)}
+.plate{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:28px;align-items:start}
+.fig{position:relative;min-height:380px}.fig>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.fig.sm{min-height:300px}
+.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--rule);box-shadow:0 2px 8px rgba(0,0,0,.12);padding:8px 10px;font-size:13px;line-height:1.4;white-space:nowrap;display:none;z-index:2}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:14px;margin:0 0 6px}
+.legend svg{vertical-align:middle;margin-right:6px}
+.side{border-left:1px solid var(--rule);padding-left:20px}
+.side dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:10px 0 0;font-size:15px}
+.side dt{color:var(--mute)}.side dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.side .big{font-size:40px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+label{font-size:14px;color:var(--mute);display:block;margin-bottom:4px}
+input[type=range]{width:100%;accent-color:var(--acc);min-height:44px}
+input[type=number],input[type=search],select{font:16px var(--font);padding:8px 10px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);min-height:44px;border-radius:4px}
+button{font:700 15px var(--font);padding:10px 16px;min-height:44px;border:1px solid var(--acc);background:var(--acc);color:var(--bg);border-radius:4px;cursor:pointer}
+button.ghost{background:transparent;color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:end;margin:12px 0}
+.note{font-size:14px;color:var(--mute)}
+.warn{color:var(--warn)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+table{border-collapse:collapse;width:100%;font-size:15px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;font-size:14px;cursor:pointer;user-select:none;border-bottom:2px solid var(--ink)}
+th[aria-sort]::after{content:" \2195";color:var(--mute)}
+tbody tr{cursor:pointer}tbody tr:hover,tbody tr.sel{background:var(--panel)}
+td.trk{width:150px;padding-block:0}
+.track{position:relative;height:22px;width:140px;margin-left:auto}
+.track::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--grid)}
+.track .ln{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--axis)}
+.track .d{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;border:2px solid var(--bg)}
+.flag{font-size:13px;color:var(--warn);white-space:normal}
+.drop{border:1.5px dashed var(--rule);border-radius:6px;padding:16px;background:var(--panel)}
+.drop input{font-size:16px;max-width:100%}
+progress{width:100%;height:10px;accent-color:var(--acc)}
+pre,.scroll{overflow-x:auto}code{overflow-wrap:anywhere;font-size:14px}
+.guide{max-width:760px}.guide table{max-width:560px;margin:10px 0 16px}.guide td,.guide th{white-space:normal;text-align:left}
+details{margin-top:14px}summary{cursor:pointer;color:var(--acc);min-height:32px}
+[hidden]{display:none!important}
+footer{font-size:14px;color:var(--mute);border-top:1px solid var(--rule)}
+@media(max-width:860px){.plate,.two{grid-template-columns:minmax(0,1fr)}.side{border-left:0;padding-left:0;border-top:1px solid var(--rule);padding-top:12px}}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start;white-space:normal}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mute)}.stack td:empty{display:none}.stack .track{margin-left:0}.fig{min-height:300px}}
+@media(prefers-reduced-motion:no-preference){.tip{transition:opacity .1s}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').querySelector('thead tr')?.cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<div class="band">
+  <div class="top">
+    <span class="src">Showing: <strong id="srcLabel">loading…</strong></span>
+    <span id="clWrap" hidden><label for="clSel" style="display:inline;margin-right:6px">Classifier</label><select id="clSel"></select></span>
+  </div>
+  <h1 id="finding">Classifier validation against human-tagged WildTrax recordings</h1>
+  <p class="lede" id="lede">Precision, recall and F-score of AI classifier detections, scored against human listeners at the task × species level.</p>
+
+  <nav aria-label="Sections">
+    <a href="#results">Overall results</a><a href="#species">By species</a><a href="#upload">Run on your data</a><a href="#guide">How to read this</a>
+  </nav>
+
+  <!-- RESULTS -->
+  <section id="v-results">
+    <div class="figs" id="keyFigs"></div>
+    <div class="plate">
+      <div>
+        <div class="legend" id="lg1"></div>
+        <div class="fig" id="f1"><svg role="img" aria-label="Precision, recall and F-score against score threshold"></svg><div class="tip"></div></div>
+        <p class="note" id="floorNote"></p>
+      </div>
+      <aside class="side">
+        <label for="thr">Score threshold</label>
+        <div class="big" id="thrVal">–</div>
+        <input type="range" id="thr" min="0" max="98" step="1" value="0" aria-describedby="thrHelp">
+        <p class="note" id="thrHelp">Drag, or click the chart. Starts at the F-max threshold.</p>
+        <dl id="thrStats"></dl>
+        <div class="row"><button class="ghost" id="toFmax">Back to F-max</button></div>
+      </aside>
+    </div>
+    <div class="two" style="margin-top:28px">
+      <div>
+        <h3>Precision–recall curve</h3>
+        <div class="fig sm" id="f2"><svg role="img" aria-label="Precision against recall"></svg><div class="tip"></div></div>
+      </div>
+      <div>
+        <h3>What the threshold costs</h3>
+        <p id="tradeoff"></p>
+        <details><summary>Table view: every threshold</summary><div class="scroll"><table id="pooledTbl"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPECIES -->
+  <section id="v-species" hidden>
+    <div class="row">
+      <div><label for="minN">Min. human-positive units</label><input type="number" id="minN" min="1" value="10" style="width:110px"></div>
+      <div><label for="tgt">Precision target</label><input type="number" id="tgt" min="0.5" max="0.99" step="0.01" value="0.90" style="width:110px"></div>
+      <div style="flex:1 1 200px"><label for="q">Find species</label><input type="search" id="q" placeholder="e.g. WTSP or loon" style="width:100%"></div>
+    </div>
+    <p class="note" id="spNote"></p>
+    <div class="plate">
+      <div>
+        <h2 id="spTitle">Select a species</h2>
+        <div class="legend" id="lg3"></div>
+        <div class="fig sm" id="f3"><svg role="img" aria-label="Species precision, recall and F-score against threshold"></svg><div class="tip"></div></div>
+      </div>
+      <aside class="side"><dl id="spStats"></dl></aside>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <h3 style="margin:0">All species <span class="note" id="spCount"></span></h3>
+      <span><button class="ghost" id="copyCsv">Copy table</button> <button class="ghost" id="dlCsv">Download CSV</button></span>
+    </div>
+    <p class="note">Dots: <span style="color:var(--s1)">●</span> precision and <span style="color:var(--s2)">■</span> recall at each species' F-max threshold, on a 0–1 scale. Click a row for its curves.</p>
+    <div class="scroll"><table class="stack" id="spTbl"></table></div>
+  </section>
+
+  <!-- UPLOAD -->
+  <section id="v-upload" hidden>
+    <h2>Run on your own WildTrax project</h2>
+    <p>Export the <strong>main report</strong> and the <strong>AI report</strong> for an ARU project (WildTrax download, or <code>wt_download_report(reports = c("main","ai"))</code> then <code>write_csv()</code>). Files are processed in your browser and are not uploaded anywhere.</p>
+    <div class="two">
+      <div class="drop"><label for="fMain">Main report CSV (human tags)</label><input type="file" id="fMain" accept=".csv,text/csv"></div>
+      <div class="drop"><label for="fAi">AI report CSV (classifier detections)</label><input type="file" id="fAi" accept=".csv,text/csv"></div>
+    </div>
+    <div class="row">
+      <div><label for="unit">Evaluate per</label><select id="unit"><option value="task">Task</option><option value="recording">Recording</option></select></div>
+      <div style="flex:1 1 220px"><label for="lbl">Label for these results</label><input type="search" id="lbl" placeholder="e.g. 2025 boreal ARU project" style="width:100%"></div>
+      <button id="run" disabled>Run validation</button>
+    </div>
+    <div id="prog" hidden><progress id="pbar" max="1" value="0"></progress><p class="note" id="pmsg"></p></div>
+    <p class="warn" id="perr" hidden></p>
+    <div id="pdone" hidden>
+      <p id="psum"></p>
+      <div class="row"><button id="viewMine">View results</button><button class="ghost" id="dlJson">Download results.json</button><button class="ghost" id="cpJson">Copy results.json</button><button class="ghost" id="backProj" hidden>Back to project results</button></div>
+    </div>
+    <details><summary>What the files need</summary>
+      <p class="note">Main report: <code>recording_id</code>, <code>task_id</code>, <code>species_code</code>, and ideally <code>task_duration</code>. AI report: <code>recording_id</code>, <code>species_code</code>, <code>confidence</code>, <code>version</code>, and ideally <code>detection_time</code> and <code>is_species_allowed_in_project</code>. Detections after the end of the listened task are ignored; species not allowed in the project are dropped; species humans tagged that the classifier never reports (unknowns, abiotic, out-of-model species) are not counted as misses.</p>
+    </details>
+  </section>
+
+  <!-- GUIDE -->
+  <section id="v-guide" class="guide" hidden>
+    <h2>How to read these results</h2>
+    <p><strong>The setup.</strong> For every task (one recording segment a person listened to) and every species, two questions get answered: did the person tag it, and did the classifier detect it? Each task × species combination is one unit.</p>
+    <p><strong>Score.</strong> For each detection the classifier gives a number from 0 to 1: how confident it is. It isn't a probability, and a 0.7 for one species doesn't mean the same as a 0.7 for another.</p>
+    <p><strong>Threshold.</strong> The cutoff you choose. Detections at or above it count as "the classifier says yes"; anything below is ignored.</p>
+    <table><thead><tr><th></th><th>Person tagged it</th><th>Person didn't</th></tr></thead>
+      <tbody><tr><th>Classifier says yes</th><td>True positive (TP)</td><td>False positive (FP)</td></tr>
+      <tr><th>Classifier says no</th><td>False negative (FN), a miss</td><td>True negative (not used)</td></tr></tbody></table>
+    <p><strong>Precision</strong> = TP ÷ (TP + FP). When the classifier says a species is there, how often is it right?</p>
+    <p><strong>Recall</strong> = TP ÷ (TP + FN). Of the times a person heard the species, how often did the classifier catch it?</p>
+    <p><strong>F-score</strong> combines the two into one number; it's only high when both are high.</p>
+    <p><strong>The trade-off.</strong> Raising the threshold makes the classifier pickier: fewer false calls (precision up) but more misses (recall down). Every curve on this site shows that trade-off.</p>
+    <p><strong>F-max vs. precision target.</strong> F-max is the threshold with the best balance between precision and recall. The precision target (default 0.90) is the lowest threshold where the classifier is right at least 90% of the time; use it if detections go straight into analyses without anyone checking them.</p>
+    <p id="example"></p>
+    <h3>Caveats</h3>
+    <p><strong>Score floor.</strong> WildTrax only stores classifier scores above a minimum (0.30 for HawkEars in the project data). Curves are flat below it and nothing there can be evaluated; an F-max "at the floor" means the true best threshold could be lower.</p>
+    <p><strong>People miss birds too.</strong> Some false positives are real birds nobody tagged, especially quiet or distant ones, so precision is a conservative estimate. Verify a sample of high-scoring false positives before concluding the classifier is wrong.</p>
+    <p><strong>Small samples.</strong> Species with few human detections have noisy thresholds. The minimum-units filter on the species page controls this.</p>
+    <p><strong>Not the same recall as <code>wt_evaluate_classifier()</code>.</strong> That function only counts misses among species–tasks the classifier detected at some score, so its recall starts at 1.0. Here, a human tag with no detection at all also counts as a miss.</p>
+  </section>
+</div>
+<footer class="band"><span id="foot"></span> Unit of evaluation: presence per unit × species. Built with WildTrax data and the wildrtrax R package.</footer>
+
+<script src="validate.js"></script>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const f2=x=>x==null||!isFinite(x)?'–':x.toFixed(2);
+const pc=x=>x==null||!isFinite(x)?'–':Math.round(x*100)+'%';
+const n0=x=>x==null||!isFinite(x)?'–':Math.round(x).toLocaleString('en-CA');
+
+let PROJECT=null, MINE=null, DATA=null, CL=0, IDX=0, SEL=null, SORT={k:'f',d:-1};
+const S={minN:10,tgt:0.9,q:''};
+
+function met(tp,fp,fn){const p=tp+fp>0?tp/(tp+fp):NaN,r=tp+fn>0?tp/(tp+fn):NaN;return{tp,fp,fn,p,r,f:p+r>0?2*p*r/(p+r):NaN}}
+function curve(o){return o.tp.map((tp,i)=>met(tp,o.fp[i],o.n_human-tp))}
+function fmaxI(c){let b=-1;c.forEach((m,i)=>{if(isFinite(m.f)&&(b<0||m.f>=c[b].f-1e-12))b=i});return b}
+function tgtI(c,t){return c.findIndex(m=>isFinite(m.p)&&m.p>=t-1e-12)}
+function floorI(o){const k=o.tp[0]+o.fp[0];let i=0;while(i+1<o.tp.length&&o.tp[i+1]+o.fp[i+1]===k)i++;return i}
+const cl=()=>DATA.classifiers[CL];
+const T=()=>DATA.meta.thresholds;
+
+/* ---------- chart ---------- */
+function chart(fig,cfg){
+  const svg=fig.querySelector('svg'),tip=fig.querySelector('.tip');
+  const V=v=>`var(${v})`;
+  const draw=()=>{
+    const W=svg.clientWidth,H=svg.clientHeight;if(!W||!H)return;
+    const sm=W<520,m={l:sm?36:48,r:14,t:10,b:sm?42:44},iw=W-m.l-m.r,ih=H-m.t-m.b;
+    const X=v=>m.l+v*iw,Y=v=>m.t+(1-v)*ih;
+    let g='';
+    if(cfg.floor!=null&&cfg.floor>0.011)g+=`<rect x="${X(0)}" y="${m.t}" width="${X(cfg.floor)-X(0)}" height="${ih}" style="fill:${V('--floor')}"/><text x="${X(cfg.floor/2)}" y="${m.t+16}" font-size="12" text-anchor="middle" style="fill:${V('--mute')}">${sm?'floor':'below score floor'}</text>`;
+    for(const v of [0,.25,.5,.75,1]){g+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:${V(v?'--grid':'--axis')}" stroke-width="${v?1:1.5}"/>`;
+      g+=`<text x="${m.l-8}" y="${Y(v)+4}" font-size="12" text-anchor="end" style="fill:${V('--mute')}">${v}</text>`;
+      if(!sm||v%0.5===0)g+=`<text x="${X(v)}" y="${m.t+ih+18}" font-size="12" text-anchor="middle" style="fill:${V('--mute')}">${v}</text>`}
+    g+=`<text x="${m.l+iw/2}" y="${H-4}" font-size="13" text-anchor="middle" style="fill:${V('--ink')}">${esc(cfg.xl)}</text>`;
+    if(!sm)g+=`<text transform="translate(12 ${m.t+ih/2}) rotate(-90)" font-size="13" text-anchor="middle" style="fill:${V('--ink')}">${esc(cfg.yl)}</text>`;
+    for(const v of cfg.vlines||[])g+=`<line x1="${X(v.x)}" x2="${X(v.x)}" y1="${m.t}" y2="${m.t+ih}" style="stroke:${V('--mute')}" stroke-dasharray="${v.dash??'2 3'}"/>${v.label&&!sm?`<text x="${X(v.x)+5}" y="${m.t+ih-6}" font-size="12" style="fill:${V('--mute')}">${esc(v.label)}</text>`:''}`;
+    for(const s of cfg.series){const d=s.pts.filter(p=>isFinite(p[0])&&isFinite(p[1])).map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join('');
+      g+=`<path d="${d}" fill="none" style="stroke:${V(s.c)}" stroke-width="${s.w||2}" stroke-dasharray="${s.dash||''}" stroke-linejoin="round"/>`}
+    for(const p of cfg.marks||[])if(isFinite(p.x)&&isFinite(p.y))g+=`<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="5" style="fill:${V(p.c)};stroke:${V('--bg')}" stroke-width="2"/>`;
+    g+=`<g class="hv"></g><rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" style="cursor:crosshair"/>`;
+    svg.innerHTML=g;
+    const hv=svg.querySelector('.hv'),hit=svg.lastElementChild;
+    const near=e=>{const r=svg.getBoundingClientRect(),px=e.clientX-r.left,py=e.clientY-r.top;let b=0,bd=1e9;
+      cfg.hp.forEach((p,i)=>{if(!isFinite(p[0]))return;const dx=X(p[0])-px,dy=cfg.mode==='x'?0:Y(p[1])-py,d=dx*dx+dy*dy;if(d<bd){bd=d;b=i}});return{b,px,py}};
+    hit.onpointermove=e=>{const{b,px,py}=near(e),p=cfg.hp[b];
+      hv.innerHTML=cfg.mode==='x'?`<line x1="${X(p[0])}" x2="${X(p[0])}" y1="${m.t}" y2="${m.t+ih}" style="stroke:${V('--ink')}" stroke-opacity=".35"/>`+cfg.series.map(s=>{const q=s.pts[b];return q&&isFinite(q[1])?`<circle cx="${X(q[0])}" cy="${Y(q[1])}" r="4" style="fill:${V(s.c)};stroke:${V('--bg')}" stroke-width="2"/>`:''}).join(''):`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="6" fill="none" style="stroke:${V('--ink')}" stroke-width="1.5"/>`;
+      tip.innerHTML=cfg.tip(b);tip.style.display='block';
+      const tw=tip.offsetWidth,left=px+14+tw>W?px-14-tw:px+14;tip.style.left=Math.max(0,left)+'px';tip.style.top=Math.max(0,Math.min(py-10,H-tip.offsetHeight))+'px'};
+    hit.onpointerleave=()=>{hv.innerHTML='';tip.style.display='none'};
+    hit.onclick=e=>{if(cfg.pick)cfg.pick(near(e).b)};
+  };
+  fig._draw=draw;
+  if(!fig._ro){fig._ro=new ResizeObserver(()=>fig._draw());fig._ro.observe(svg)}
+  draw();
+}
+const SER=[{k:'p',n:'Precision',c:'--s1',dash:''},{k:'r',n:'Recall',c:'--s2',dash:'7 4'},{k:'f',n:'F-score',c:'--s3',dash:'3 3',w:2.5}];
+const legend=el=>{el.innerHTML=SER.map(s=>`<span><svg width="26" height="8" aria-hidden="true"><line x1="0" y1="4" x2="26" y2="4" style="stroke:var(${s.c})" stroke-width="${s.w||2}" stroke-dasharray="${s.dash}"/></svg>${s.n}</span>`).join('')};
+const tipRows=(m,t)=>`<strong>Threshold ${f2(t)}</strong><br>Precision ${f2(m.p)} · Recall ${f2(m.r)} · F ${f2(m.f)}<br>TP ${n0(m.tp)} · FP ${n0(m.fp)} · FN ${n0(m.fn)}`;
+
+/* ---------- overall ---------- */
+function renderResults(){
+  const c=cl(),pc_=curve(c.pooled),t=T(),fi=floorI(c.pooled),fm=fmaxI(pc_),F=pc_[fm];
+  const fl=fi>0?t[fi]:null, nsp=c.species.filter(s=>s.n_human>=S.minN).length;
+  $('#finding').textContent=`At its best overall threshold (${f2(t[fm])}), ${c.name} is right ${pc(F.p)} of the time and catches ${pc(F.r)} of what listeners tagged`;
+  $('#lede').textContent=`${n0(c.pooled.n_human)} human detections (unit × species) evaluated${DATA.meta.n_units?` across ${n0(DATA.meta.n_units)} ${DATA.meta.unit}s`:''}. Pooled over all species; see By species for species-level thresholds.`;
+  $('#keyFigs').innerHTML=[[f2(t[fm]),'F-max threshold'],[pc(F.p),'precision at F-max'],[pc(F.r),'recall at F-max'],[nsp,`species with ≥${S.minN} detections`],[fl?f2(fl):'none','stored score floor']].map(([b,s])=>`<div><b>${esc(b)}</b><span>${esc(s)}</span></div>`).join('');
+  $('#floorNote').textContent=fl?`Shaded: thresholds at or below the stored score floor (${f2(fl)}). WildTrax keeps no detections below it, so the curves are flat there and cannot be evaluated.`:'';
+  legend($('#lg1'));
+  const ser=SER.map(s=>({c:s.c,dash:s.dash,w:s.w,pts:pc_.map((m,i)=>[t[i],m[s.k]])}));
+  const setIdx=i=>{IDX=i;$('#thr').value=i;sideStats(pc_,t,fm);chart($('#f1'),cfg1)};
+  const cfg1={series:ser,xl:'Score threshold',yl:'Metric value',floor:fl,mode:'x',hp:pc_.map((m,i)=>[t[i],0]),tip:i=>tipRows(pc_[i],t[i]),pick:setIdx,get vlines(){return[{x:t[fm],label:'F-max'},{x:t[IDX],dash:'',label:IDX===fm?'':'selected'}]}};
+  $('#thr').oninput=e=>setIdx(+e.target.value);
+  $('#toFmax').onclick=()=>setIdx(fm);
+  if(IDX==null||IDX<0)IDX=fm;
+  setIdx(IDX);
+  chart($('#f2'),{series:[{c:'--acc',pts:pc_.map(m=>[m.r,m.p])}],xl:'Recall',yl:'Precision',mode:'nearest',hp:pc_.map(m=>[m.r,m.p]),tip:i=>tipRows(pc_[i],t[i]),marks:[{x:F.r,y:F.p,c:'--s3'}],pick:setIdx});
+  const tg=tgtI(pc_,S.tgt),lo=pc_[Math.max(fi,0)];
+  $('#tradeoff').innerHTML=`At the floor (${f2(t[Math.max(fi,0)])}) there would be <strong>${n0(lo.tp+lo.fp)}</strong> detections to check, ${pc(lo.p)} of them real. At F-max (${f2(t[fm])}) that drops to <strong>${n0(F.tp+F.fp)}</strong>, but ${n0(F.fn)} human detections are missed. `+(tg>=0?`Reaching ${pc(S.tgt)} precision needs a threshold of ${f2(t[tg])}, keeping ${pc(pc_[tg].r)} recall.`:`Pooled precision never reaches ${pc(S.tgt)}; use species-level thresholds.`);
+  $('#pooledTbl').innerHTML='<thead><tr><th>Threshold</th><th>TP</th><th>FP</th><th>FN</th><th>Precision</th><th>Recall</th><th>F</th></tr></thead><tbody>'+pc_.map((m,i)=>`<tr><td>${f2(t[i])}</td><td>${n0(m.tp)}</td><td>${n0(m.fp)}</td><td>${n0(m.fn)}</td><td>${f2(m.p)}</td><td>${f2(m.r)}</td><td>${f2(m.f)}</td></tr>`).join('')+'</tbody>';
+}
+function sideStats(c,t,fm){const m=c[IDX];$('#thrVal').textContent=f2(t[IDX]);
+  $('#thrStats').innerHTML=[['Precision',f2(m.p)],['Recall',f2(m.r)],['F-score',f2(m.f)],['True positives',n0(m.tp)],['False positives',n0(m.fp)],['Missed (FN)',n0(m.fn)],['Detections to verify',n0(m.tp+m.fp)]].map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}
+
+/* ---------- species ---------- */
+function spRows(){
+  const c=cl(),t=T(),fl=floorI(c.pooled),q=S.q.trim().toLowerCase();
+  return c.species.filter(s=>s.n_human>=S.minN).map(s=>{const cv=curve(s),fm=fmaxI(cv),tg=tgtI(cv,S.tgt),F=cv[fm]||{};
+    return{s,cv,fm,tg,code:s.code,name:s.name||'',n:s.n_human,thr:fm>=0?t[fm]:NaN,p:F.p,r:F.r,f:F.f,tt:tg>=0?t[tg]:NaN,tr:tg>=0?cv[tg].r:NaN,atFloor:fm>=0&&fm<=fl&&fl>0,tgFloor:tg>=0&&tg<=fl&&fl>0}})
+  .filter(o=>!q||o.code.toLowerCase().includes(q)||o.name.toLowerCase().includes(q));
+}
+function renderSpecies(){
+  const c=cl(),all=c.species.length,rows=spRows(),fl=floorI(c.pooled),t=T();
+  const k=SORT.k;rows.sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==='string')return SORT.d*x.localeCompare(y);return SORT.d*((isFinite(x)?x:-1)-(isFinite(y)?y:-1))});
+  $('#spCount').textContent=`(${rows.length} shown of ${all})`;
+  $('#spNote').textContent=(DATA.meta.species_note?DATA.meta.species_note+' ':'')+(fl>0?`"≤ ${f2(t[fl])}" means the threshold sits at the stored score floor; the true value could be lower.`:'');
+  const cols=[['code','Species'],['n','n'],['thr','F-max thr.'],['p','Precision'],['r','Recall'],['f','F'],['trk','P / R'],['tt',`P≥${f2(S.tgt)} thr.`],['tr','Recall there'],['flag','Note']];
+  const thd=v=>v.atFloor?'≤ '+f2(v.thr):f2(v.thr), ttd=v=>!isFinite(v.tt)?'–':v.tgFloor?'≤ '+f2(t[fl]):f2(v.tt);
+  $('#spTbl').innerHTML='<thead><tr>'+cols.map(([k,l])=>`<th data-k="${k}"${k!=='trk'&&k!=='flag'?' aria-sort="none"':''}>${esc(l)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(v=>{
+    const flags=[];if(!isFinite(v.tt))flags.push(`never reaches P ${f2(S.tgt)}`);if(isFinite(v.tr)&&v.tr<0.15)flags.push('high-scoring false positives');if(v.n<15)flags.push('small n');
+    const lo=Math.min(v.p,v.r),hi=Math.max(v.p,v.r);
+    return `<tr data-c="${esc(v.code)}"${SEL===v.code?' class="sel"':''}><td><strong>${esc(v.code)}</strong>${v.name?` <span class="note">${esc(v.name)}</span>`:''}</td><td>${v.n}</td><td>${thd(v)}</td><td>${f2(v.p)}</td><td>${f2(v.r)}</td><td><strong>${f2(v.f)}</strong></td>
+    <td class="trk"><div class="track" title="Precision ${f2(v.p)}, recall ${f2(v.r)}">${isFinite(lo)?`<span class="ln" style="left:${lo*100}%;width:${(hi-lo)*100}%"></span>`:''}<span class="d" style="left:${(v.p||0)*100}%;background:var(--s1)"></span><span class="d" style="left:${(v.r||0)*100}%;background:var(--s2);border-radius:1px"></span></div></td>
+    <td>${ttd(v)}</td><td>${f2(v.tr)}</td><td class="flag">${flags.join('; ')}</td></tr>`}).join('')+'</tbody>';
+  if(!rows.length)$('#spTbl').innerHTML+='<tbody><tr><td colspan="10" class="note">No species match. Lower the minimum or clear the search.</td></tr></tbody>';
+  $('#spTbl').querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k==='trk'||k==='flag')return;SORT={k,d:SORT.k===k?-SORT.d:(k==='code'?1:-1)};renderSpecies()});
+  $('#spTbl').querySelectorAll('tbody tr[data-c]').forEach(tr=>tr.onclick=()=>{SEL=tr.dataset.c;renderSpecies()});
+  if(!SEL||!c.species.some(s=>s.code===SEL)){const top=[...c.species].sort((a,b)=>b.n_human-a.n_human)[0];SEL=top&&top.code}
+  renderDetail();
+}
+function renderDetail(){
+  const c=cl(),t=T(),s=c.species.find(x=>x.code===SEL);if(!s)return;
+  const cv=curve(s),fm=fmaxI(cv),tg=tgtI(cv,S.tgt),fl=floorI(c.pooled);
+  $('#spTitle').textContent=s.code+(s.name?' · '+s.name:'');
+  legend($('#lg3'));
+  const vl=[];if(fm>=0)vl.push({x:t[fm],label:'F-max'});if(tg>=0&&tg!==fm)vl.push({x:t[tg],dash:'6 3',label:'P target'});
+  chart($('#f3'),{series:SER.map(z=>({c:z.c,dash:z.dash,w:z.w,pts:cv.map((m,i)=>[t[i],m[z.k]])})),xl:'Score threshold',yl:'Metric value',floor:fl>0?t[fl]:null,mode:'x',hp:cv.map((m,i)=>[t[i],0]),tip:i=>tipRows(cv[i],t[i]),vlines:vl});
+  const F=cv[fm]||{},G=tg>=0?cv[tg]:null;
+  $('#spStats').innerHTML=[['Human-positive units',s.n_human],['F-max threshold',fm>=0?f2(t[fm]):'–'],['Precision / recall',`${f2(F.p)} / ${f2(F.r)}`],['TP / FP / FN',`${n0(F.tp)} / ${n0(F.fp)} / ${n0(F.fn)}`],[`P ≥ ${f2(S.tgt)} threshold`,G?f2(t[tg]):'never'],['Recall there',G?f2(G.r):'–'],['Detections at floor',n0(cv[Math.max(fl,0)].tp+cv[Math.max(fl,0)].fp)]].map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('');
+}
+function tableCSV(){const t=T(),fl=floorI(cl().pooled);return['classifier,species_code,species_name,n_human,fmax_threshold,precision,recall,fscore,target_precision,target_threshold,recall_at_target,fmax_at_floor'].concat(spRows().map(v=>[cl().name,v.code,v.name,v.n,f2(v.thr),f2(v.p),f2(v.r),f2(v.f),f2(S.tgt),isFinite(v.tt)?f2(v.tt):'',f2(v.tr),v.atFloor].map(x=>/[",\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':x).join(','))).join('\n')}
+async function copy(txt,btn){try{await navigator.clipboard.writeText(txt);const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1500)}catch(e){btn.textContent='Copy blocked'}}
+function download(txt,name,type){try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}catch(e){}}
+$('#copyCsv').onclick=e=>copy(tableCSV(),e.target);
+$('#dlCsv').onclick=()=>download(tableCSV(),'species_thresholds.csv','text/csv');
+$('#minN').oninput=e=>{S.minN=Math.max(1,+e.target.value||1);renderAll()};
+$('#tgt').oninput=e=>{const v=+e.target.value;if(v>0&&v<1){S.tgt=v;renderAll()}};
+$('#q').oninput=e=>{S.q=e.target.value;renderSpecies()};
+
+/* ---------- data source ---------- */
+function useData(d,isMine){
+  DATA=d;CL=Math.max(0,d.classifiers.findIndex(c=>/hawkears/i.test(c.name)));IDX=null;SEL=null;
+  $('#srcLabel').textContent=d.meta.label+(isMine?' (your upload, not saved)':'');
+  $('#foot').textContent=`Data generated ${d.meta.generated}.`;
+  const sel=$('#clSel');sel.innerHTML=d.classifiers.map((c,i)=>`<option value="${i}"${i===CL?' selected':''}>${esc(c.name)}</option>`).join('');
+  $('#clWrap').hidden=d.classifiers.length<2;sel.onchange=e=>{CL=+e.target.value;IDX=null;SEL=null;renderAll()};
+  $('#backProj').hidden=!(isMine&&PROJECT);
+  renderAll();
+}
+function renderAll(){if(!DATA)return;renderResults();renderSpecies();renderExample()}
+function renderExample(){const c=cl(),t=T(),s=[...c.species].sort((a,b)=>b.n_human-a.n_human)[0];if(!s)return;const cv=curve(s),fm=fmaxI(cv),tg=tgtI(cv,S.tgt),F=cv[fm];
+  $('#example').innerHTML=`<strong>Worked example: ${esc(s.code)}${s.name?' ('+esc(s.name)+')':''}.</strong> People tagged it in ${n0(s.n_human)} ${esc(DATA.meta.unit)}s. At its F-max threshold of ${f2(t[fm])}, ${esc(c.name)} caught ${n0(F.tp)} of them (recall ${f2(F.r)}), and ${pc(F.p)} of its ${esc(s.code)} calls were real (precision ${f2(F.p)}). `+(tg>=0?`Precision passes ${f2(S.tgt)} at ${f2(t[tg])}, where recall is ${f2(cv[tg].r)}.`:`Precision never reaches ${f2(S.tgt)}.`)}
+
+/* ---------- upload ---------- */
+const fM=$('#fMain'),fA=$('#fAi'),run=$('#run');
+const ready=()=>{run.disabled=!(fM.files[0]&&fA.files[0])};fM.onchange=ready;fA.onchange=ready;
+run.onclick=async()=>{
+  $('#perr').hidden=true;$('#pdone').hidden=true;$('#prog').hidden=false;run.disabled=true;
+  try{
+    const res=await HV.computeFromFiles(fM.files[0],fA.files[0],{unit:$('#unit').value,label:$('#lbl').value.trim()||'Your data'},(msg,f)=>{$('#pmsg').textContent=msg;$('#pbar').value=f});
+    MINE=res;const a=res.meta.ai_rows;
+    $('#psum').innerHTML=`Matched <strong>${n0(a.used)}</strong> of ${n0(a.total)} AI detections to ${n0(res.meta.n_units)} human-processed ${esc(res.meta.unit)}s, for ${res.classifiers.length} classifier(s): ${res.classifiers.map(c=>esc(c.name)).join(', ')}. Dropped: ${n0(a.not_allowed)} species not allowed in project, ${n0(a.missing_score)} with no score, ${n0(a.no_human_recording)} on recordings no one listened to, ${n0(a.outside_listened_window)} after the end of the listened task.`+(res.classifiers[0].excluded_human_species.length?` Human-tagged codes the classifier never reports (not counted as misses): ${res.classifiers[0].excluded_human_species.slice(0,25).map(esc).join(', ')}${res.classifiers[0].excluded_human_species.length>25?'…':''}.`:'');
+    $('#pdone').hidden=false;
+  }catch(e){$('#perr').textContent=e.message||String(e);$('#perr').hidden=false}
+  finally{run.disabled=false;$('#prog').hidden=true}
+};
+$('#viewMine').onclick=()=>{useData(MINE,true);location.hash='results'};
+$('#backProj').onclick=()=>{useData(PROJECT,false);location.hash='results'};
+$('#dlJson').onclick=()=>download(JSON.stringify(MINE),'results.json','application/json');
+$('#cpJson').onclick=e=>copy(JSON.stringify(MINE),e.target);
+
+/* ---------- routing & theme ---------- */
+const VIEWS=['results','species','upload','guide'];
+function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'results';
+  VIEWS.forEach(x=>{$('#v-'+x).hidden=x!==v});document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.getAttribute('href')==='#'+v)&&a.setAttribute('aria-current','page'));
+  if(DATA&&(v==='results'||v==='species'))requestAnimationFrame(()=>document.querySelectorAll('.fig').forEach(f=>f._draw&&f._draw()))}
+window.addEventListener('hashchange',route);route();
+const redraw=()=>document.querySelectorAll('.fig').forEach(f=>f._draw&&f._draw());
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+
+fetch('data/results.json').then(r=>{if(!r.ok)throw new Error(r.status);return r.json()})
+  .then(d=>{PROJECT=d;useData(d,false)})
+  .catch(()=>{$('#srcLabel').textContent='no project data yet';$('#finding').textContent='Run the validation on your own WildTrax export';location.hash='upload'});
+}
+</script>
+</body>
+</html>

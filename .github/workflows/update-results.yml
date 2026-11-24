@@ -33,7 +33,7 @@ jobs:
           WT_PASSWORD: ${{ secrets.WT_PASSWORD }}
           PROJECT_ID: ${{ vars.PROJECT_ID }}
           SITE_LABEL: ${{ vars.SITE_LABEL }}
-        run: Rscript R/build_results.R
+                run: Rscript hawkears-validation-site/R/build_results.R
 
       - name: Commit if results changed
         run: |

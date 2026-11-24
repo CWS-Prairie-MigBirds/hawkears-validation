@@ -40,11 +40,13 @@ vignettes/*.pdf
 .Renviron
 .env
 
-# pkgdown site
-docs/
 
 # translation temp files
 po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Raw WildTrax downloads and intermediate data (not for the public repo)
+boreal/data/
+*.rds
